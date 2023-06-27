@@ -1,59 +1,102 @@
 # Workflow/Kubernetes
 
-To deploy an application into kubernetes cluster, follow the steps below:
+## Creating a Kubernetes Cluster
 
-Create a Cluster: First, you need to create a cluster using the command: minikube start.
+1. **Create a Cluster**: First, you need to create a cluster using the command: `minikube start`.
+2. **Deploy Your Application Image**: After creating a cluster, you can deploy your application image into it using a deployment with the command: `kubectl create deployment <deployment name> --image=<image name>`.
+3. **Expose the Deployment**: To make your application accessible from your host machine, you need to expose the deployment using a service. You can do this with the command: `kubectl expose deployment <deployment name> --type=<TYPE> --port=<The application port>`.
+4. **Access the Service Outside the Cluster**: To get the IP address of the service outside of the cluster, you can use Minikube's IP address with the command: `minikube ip <ip address>`.
+5. **Stop or Delete the Cluster**: If you're finished with the cluster, you can either stop it using `minikube stop` or delete the cluster using `minikube delete`.
 
-Deploy Your Application Image: After creating a cluster, you can deploy your application image into it using a deployment with the command: kubectl create deployment <deployment name> --image=<image name>.
+## Understanding Containers and Virtual Machines
 
-By default, Kubernetes runs the application within a private network. Objects inside the cluster can access each other, but they're not available outside the cluster unless exposed using a service.
-
-Expose the Deployment: To make your application accessible from your host machine, you need to expose the deployment using a service. You can do this with the command: kubectl expose deployment <deployment name> --type=<TYPE> --port=<The application port>.
-There are several ways to expose Objects in Kubernetes. For instance, NodePort assigns a high-numbered random port on all the services in your cluster to the object you're trying to expose.
-
-Once an object is exposed outside of a cluster, a service is created. You can retrieve information about the service using the command: kubectl get service <service name>. The 'CLUSTER-IP' displayed is the internal IP address of the service inside the cluster. However, outside the cluster, the service is accessible using the 'outside port'. The format is 'PORT(S): <inside port>:<outside port>/TCP'.
-
-Access the Service Outside the Cluster: To get the IP address of the service outside of the cluster, you can use Minikube's IP address with the command: minikube ip <ip address>. Your service will then be accessible on your machine as <ip address>:<outside port>.
-Alternatively, you can let Minikube handle the process of finding the IP address and port, and launching the service in your web browser by running the command: `minikube service <service name>`.
-
-Stop or Delete the Cluster: If you're finished with the cluster, you can either stop it using minikube stop or delete the cluster using minikube delete.
-
-Containers and virtual machines
 The major distinction between containers and virtual machines lies in their structure and functionality. A container encapsulates the application along with its dependencies, which may encompass certain features of an operating system (OS). On the other hand, a virtual machine represents a full-fledged OS capable of running various applications.
 
-`ls -lah` means: "List all files (including hidden ones) in the current directory, in long format, and display the sizes in a human-readable format.
+## Interpreting Command Line Instructions
 
-Multi-stage builds
+`ls -lah` means: "List all files (including hidden ones) in the current directory, in long format, and display the sizes in a human-readable format."
+
+## Understanding Multi-stage Builds
+
 A multi-stage build in Docker is a process where you use multiple FROM statements in your Dockerfile. Each FROM statement begins a new stage of the build.
 
-The reason you might want to do this is to keep your final Docker image small and secure. Here's how:
+## Working with Docker Context
 
-First Stage (Build stage): In the first stage, you typically use a larger Docker image that contains all the tools and dependencies needed to build your application. Here, you compile your code and create an executable file. This stage results in a Docker image that has your compiled application along with all the build tools and dependencies - but this image might be quite large.
+If for some reason, you want to build your application image inside Minikube, you can switch the Docker context, and then build the image. 
 
-Second Stage (Production stage): In the second stage, you start with a new, often smaller, Docker image that contains only the minimal elements your application needs to run (like a slim version of an operating system). You then copy only the compiled application from the first stage into this new image. This leaves you with a smaller, more streamlined Docker image that is quicker to start, uses less memory, and has a smaller attack surface, which improves security.
+## Accessing Docker Images from a Private Image Repository
 
-So, in simple terms, a multi-stage Docker build is a way to build your application in one Docker image (stage), then copy the built application into a different, smaller Docker image. This results in a smaller final image that contains only what's needed to run your application.
+1. **Retrieve Docker Registry Credentials**: Obtain the necessary credentials for your Docker registry. 
+2. **Create a Secret**: Use the `kubectl create secret` command to create the Docker registry secret. 
+      ```
+      kubectl create secret docker-registry <secret-name> \
+        --docker-server=<registry-server> \
+        --docker-username=<username> \
+        --docker-password=<access-token> \
+        --docker-email=<email>
+      ```
 
-If for some reason, you want to build your application image inside minikube, you can switch the docker context, and then build the image.
+## Creating and Modifying a Deployment
 
-Docker context
-The command `docker images` displays the Docker images that are currently stored on your local machine. However, when you execute `eval $(minikube docker-env)`, the Docker context shifts to utilize the Docker environment within Minikube. As a result, any subsequent `docker images` commands will reveal the Docker images stored within the Minikube environment, instead of those on your local machine.
-If you have bash or zsh installed, you can switch to it by simply typing `bash` or `zsh` in your terminal.
+1. **Create the deployment**: `kubectl create deployment <deployment name> –image=<image-name>`
+2. **Edit the deployment to add the secret**: `kubectl edit deployment <deployment name>`
 
-`eval $(minikube docker-env -u)` command unset the environment variable that was set to switch the docker context, and subsequent `docker images` will reveal the Docker images stored within the local machine instead of minikube.
+## Scaling the Application Manually
 
-Docker image from a private image repository: here
-Retrieve Docker Registry Credentials: Obtain the necessary credentials for your Docker registry. Typically, this involves a username and password or an access token. Make sure you have these credentials handy.
+We can edit the deployment file and increase the number of replicas to ensure higher availability of the application.
 
-Create a Secret: Use the `kubectl create secret` command to create the Docker registry secret.
+## Monitoring the Logs
+
+When we increase the number of replicas in our deployment to manually scale the application, it's important to ensure that requests are properly distributed to all the pods.
+
+## Understanding Service Routing in Kubernetes
+
+## Updating the Image of a Deployment
+
+If you need to update the image for a specific deployment because changes have been made and you want to ensure the latest version is running in your cluster, there are a couple of ways to accomplish this.
+
+## Rolling Back Deployment in Kubernetes
+
+To revert or undo changes in Kubernetes, you can utilize the `kubectl rollout history deployment hello-go` command.
+
+## Working with Git
+
+To sync your fork with the original repository (the origin), you need to add the original repo as an upstream source to your local clone of your fork.
+
 ```
-kubectl create secret docker-registry <secret-name> \
-  --docker-server=<registry-server> \
-  --docker-username=<username> \
-  --docker-password=<access-token> \
-  --docker-email=<email>
+git remote add upstream https://github.com/ORIGINAL_OWNER/ORIGINAL_REPOSITORY.git
+
 ```
-To allow Minikube to pull an image from a private registry repository, you need to use the secret in your deployments or pods.
+```
+git fetch upstream
+```
+
+```
+git checkout master
+```
+```
+git merge upstream/master
+```
+
+```
+git status
+```
+
+```
+git push origin master
+```
+
+
+## Formatting Go Files
+
+Use `gofumpt -w ./cmd/*.go` to format Go files.
+
+## Working with Vim
+
+To select all in Vim, do `ggVG`.
+To delete all in Vim, do `ggdG`.
+
+
 
 Create the deployment
 `kubectl create deployment <deployment name> –image=<image-name>`
@@ -110,31 +153,4 @@ Once you've identified the desired revision, you can proceed with the rollback p
 
 Git
 To sync your fork with the original repository (the origin), you need to add the original repo as an upstream source to your local clone of your fork. Then you'll fetch the commits from the upstream source and merge them into your local clone.
-```
-git remote add upstream https://github.com/ORIGINAL_OWNER/ORIGINAL_REPOSITORY.git
 
-```
-```
-git fetch upstream
-```
-
-```
-git checkout master
-```
-```
-git merge upstream/master
-```
-
-```
-git status
-```
-
-```
-git push origin master
-```
-
-Format go files
-```gofumpt -w ./cmd/*.go```
-
-to select all in Vim, do ggVG.
-To delete all in Vim, do ggdG
